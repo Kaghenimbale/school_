@@ -5,3 +5,9 @@ export type Student = {
   total: number;
   percentage: number;
 };
+
+export type Course = {
+  name: string;
+  max: number;
+  pass: number;
+};
