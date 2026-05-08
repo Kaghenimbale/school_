@@ -1,5 +1,8 @@
 "use client";
 
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import { courses } from "../data/courses";
 import { Student } from "../types/index";
 
@@ -13,6 +16,53 @@ export default function StudentModal({ open, student, onClose }: Props) {
   if (!open || !student) return null;
 
   const maxTotal = courses.reduce((acc, c) => acc + c.max, 0);
+
+  // GENERATE PDF
+  const generatePDF = () => {
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(20);
+    doc.text("Bulletin de l'Élève", 14, 20);
+
+    // Student Info
+    doc.setFontSize(12);
+    doc.text(`Nom: ${student.name}`, 14, 35);
+
+    // Table
+    autoTable(doc, {
+      startY: 45,
+      head: [["Cours", "Note", "Max", "Pass", "Statut"]],
+      body: courses.map((course) => {
+        const mark = student.marks[course.name];
+        const passed = mark >= course.pass;
+
+        return [
+          course.name,
+          mark,
+          course.max,
+          course.pass,
+          passed ? "Réussi" : "Échec",
+        ];
+      }),
+    });
+
+    // Summary
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+
+    doc.text(`Total: ${student.total}/${maxTotal}`, 14, finalY);
+
+    doc.text(`Pourcentage: ${student.percentage.toFixed(1)}%`, 14, finalY + 10);
+
+    doc.text(
+      `Décision: ${student.percentage >= 50 ? "Réussi" : "Échec"}`,
+      14,
+      finalY + 20,
+    );
+
+    // Download
+    doc.save(`${student.name}-bulletin.pdf`);
+  };
 
   return (
     <div
@@ -30,12 +80,22 @@ export default function StudentModal({ open, student, onClose }: Props) {
             <p className="text-slate-500">{student.name}</p>
           </div>
 
-          <button
-            onClick={onClose}
-            className="rounded-full bg-red-100 px-4 py-2 text-red-600"
-          >
-            X
-          </button>
+          <div className="flex gap-3">
+            {/* PDF BUTTON */}
+            <button
+              onClick={generatePDF}
+              className="rounded-full bg-indigo-600 px-4 py-2 text-white"
+            >
+              Télécharger PDF
+            </button>
+
+            <button
+              onClick={onClose}
+              className="rounded-full bg-red-100 px-4 py-2 text-red-600"
+            >
+              X
+            </button>
+          </div>
         </div>
 
         <table className="w-full border-collapse">

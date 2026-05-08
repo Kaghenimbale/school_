@@ -6,6 +6,8 @@ import StudentModal from "./components/StudentModal";
 import { courses } from "./data/courses";
 import { Student } from "./types";
 import { loadStudents, saveStudents } from "./utils/storage";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function Home() {
   /* =========================
@@ -122,6 +124,61 @@ export default function Home() {
     student.name.toLowerCase().includes(search.toLowerCase()),
   );
 
+  /* =========================
+   GENERATE PDF
+========================= */
+
+  const generateProclamationPDF = () => {
+    const doc = new jsPDF("landscape");
+
+    // TITLE
+    doc.setFontSize(20);
+    doc.text("Liste de Proclamation des Élèves", 14, 20);
+
+    doc.setFontSize(11);
+    doc.text(`Nombre total des élèves: ${students.length}`, 14, 30);
+
+    // TABLE HEADERS
+    const tableHead = [
+      [
+        "Nom",
+        ...courses.map((course) => `${course.name} /${course.max}`),
+        "Total",
+        "%",
+        "Décision",
+      ],
+    ];
+
+    // TABLE BODY
+    const tableBody = students.map((student) => [
+      student.name,
+
+      ...courses.map((course) => `${student.marks[course.name]}/${course.max}`),
+
+      `${student.total}/${maxTotal}`,
+
+      `${student.percentage.toFixed(1)}%`,
+
+      student.percentage >= 50 ? "Réussi" : "Échec",
+    ]);
+
+    // GENERATE TABLE
+    autoTable(doc, {
+      startY: 40,
+      head: tableHead,
+      body: tableBody,
+      styles: {
+        fontSize: 9,
+      },
+      headStyles: {
+        fillColor: [79, 70, 229],
+      },
+    });
+
+    // DOWNLOAD
+    doc.save("proclamation-eleves.pdf");
+  };
+
   return (
     <main className="min-h-screen bg-slate-100 p-6">
       <div className="mx-auto max-w-7xl">
@@ -137,14 +194,24 @@ export default function Home() {
             </p>
           </div>
 
-          {/* SEARCH */}
-          <input
-            type="text"
-            placeholder="Search student..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border p-3 outline-none focus:ring-2 focus:ring-indigo-500 md:w-80"
-          />
+          <div className="flex flex-col gap-3 md:flex-row">
+            {/* PDF BUTTON */}
+            <button
+              onClick={generateProclamationPDF}
+              className="rounded-xl bg-green-600 px-5 py-3 font-bold text-white hover:bg-green-700"
+            >
+              Télécharger PDF
+            </button>
+
+            {/* SEARCH */}
+            <input
+              type="text"
+              placeholder="Search student..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border p-3 outline-none focus:ring-2 focus:ring-indigo-500 md:w-80"
+            />
+          </div>
         </div>
 
         {/* FORM */}
